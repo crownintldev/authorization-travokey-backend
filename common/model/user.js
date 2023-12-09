@@ -71,7 +71,6 @@ const UserSchema = new mongoose.Schema(
     },
     dbName: {
       type: String,
-      unique: true,
     },
     dbConnectionString: {
       type: String,
