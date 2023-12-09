@@ -115,7 +115,7 @@ const signIn = catchAsync(async (req, res, next) => {
         return;
       } else if (
         user.role === "admin"
-        // req.headers.origin !== process.env.ADMIN_PORTAL_URL
+        req.headers.origin !== process.env.ADMIN_PORTAL_URL
       ) {
         console.log("====req.headers.origin", req.headers.origin);
         res.status(400).send({
