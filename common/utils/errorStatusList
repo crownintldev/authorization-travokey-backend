@@ -1,0 +1,18 @@
+Table of Contents
+HTTP 100-199: Informational status
+HTTP 200-299: Successful status
+HTTP 300-399: Redirect status
+HTTP 400-499: Client error
+HTTP 500-599: Server error
+
+most error status used
+
+200 OK
+201 Created
+202 Accepted
+
+400 Bad Request
+401 Unauthorized
+404 Not Found
+
+500 Internal Server Error
