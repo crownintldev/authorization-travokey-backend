@@ -11,12 +11,16 @@ const moduleSchema = new mongoose.Schema(
       lowercase: true,
       required: [true, "Please enter the title"],
     },
+    key: {
+      type: String,
+      lowercase: true,
+      required: [true, "Please enter the key"],
+    },
     description: {
       type: String,
       lowercase: true,
       required: [true, "Please enter the description"],
     },
-
     updatedAt: {
       type: Date,
     },

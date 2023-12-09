@@ -24,7 +24,21 @@ let userFieldSendFrontEnd = [
   "profileImageUrl",
   "accountSetupStatus",
 ];
-
+const emailCheck = catchAsync(async (req, res) => {
+  const { email } = JSON.parse(req.params.query);
+  console.log("=====email", email);
+  const Record = await generalService.getRecord(TableName, { email: email });
+  if (Record && Record.length > 0) {
+    res.send({
+      status: constant.ERROR,
+      message: "Email already exists",
+    });
+  } else {
+    res.send({
+      status: constant.SUCCESS,
+    });
+  }
+});
 //Register User ==============================================================
 const signUp = catchAsync(async (req, res) => {
   const data = req.body;
@@ -294,4 +308,5 @@ module.exports = {
   setNewPassword,
   changePassword,
   authCheck,
+  emailCheck,
 };

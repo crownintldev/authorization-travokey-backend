@@ -24,6 +24,11 @@ router.post(
 );
 router.post("/getDbUsers", authenticate, getDbUsers);
 router.post("/getAllUsers", authenticate, getUsers);
-router.post("/createApp", authenticate, handleCreateApp);
+router.post(
+  "/createApp",
+  // usersJoi.handleCreateApp,
+  authenticate,
+  handleCreateApp
+);
 
 module.exports = router;

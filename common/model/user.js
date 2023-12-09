@@ -19,9 +19,7 @@ const UserSchema = new mongoose.Schema(
       default: 0,
       unique: true,
     },
-    dbConnectionString: {
-      type: String,
-    },
+
     fullName: {
       type: String,
       lowercase: true,
@@ -64,16 +62,19 @@ const UserSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["superAdmin", "admin"],
+      enum: ["superAdmin", "admin", "client", "agent", "company"],
     },
     dbConfig: {
       type: String,
-      enum: ["manual", "cloud"],
-      default: "cloud",
+      enum: ["desktopSynchronize", "cloudBase", "desktopApp"],
+      default: "cloudBase",
     },
     dbName: {
       type: String,
       unique: true,
+    },
+    dbConnectionString: {
+      type: String,
     },
     gender: {
       type: String,
@@ -93,6 +94,23 @@ const UserSchema = new mongoose.Schema(
       enum: ["allowed", "denied"],
       default: "denied",
     },
+    dbEngine: {
+      type: String,
+      enum: ["mongodb"],
+      default: "mongodb",
+    },
+    paymentDetails: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PaymentDetail",
+    },
+    module: {
+      type: String,
+      enum: ["accountsApp", "ticketingApp"],
+      default: "accountsApp",
+      // type: mongoose.Schema.Types.ObjectId,
+      // ref: "Module",
+    },
+
     createdAt: {
       type: Date,
       default: Date.now,

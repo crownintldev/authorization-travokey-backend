@@ -81,6 +81,37 @@ exports.handleUserAccountStatus = function (req, res, next) {
     });
   }
 };
+exports.handleCreateApp = function (req, res, next) {
+  const data = req.body;
+  let objectValidateScheme = joi.object().keys({
+    referenceId: joi.string().required(),
+    selectedApp: joi.string().required(),
+    selectedUseCase: joi.string().required(),
+    selectedDatabase: joi.string().required(),
+    cardDetails: joi.object.keys({
+      cvc: joi.number().required(),
+      number: joi.number().required(),
+      name: joi.string().required(),
+      expiry: joi.string().required(),
+    }),
+  });
+
+  try {
+    const { error, value } = objectValidateScheme.validate(data);
+    if (error) {
+      res.status(422).json({
+        status: "ERROR",
+        message: error.details[0].message,
+      });
+    }
+    next();
+  } catch (error) {
+    res.status(422).json({
+      status: "ERROR",
+      message: error.details[0].message,
+    });
+  }
+};
 exports.handleUserDbStatus = function (req, res, next) {
   const data = req.body;
   let objectValidateScheme = joi.object().keys({

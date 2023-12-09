@@ -7,6 +7,7 @@ const constant = require("../utils/constant"),
   _ = require("lodash");
 const { sanitizeAndFormatFullName } = require("../utils/userIdCreator");
 const jwt = require("jsonwebtoken");
+const { autoIncrement } = require("../utils/commonFunctions");
 
 const saltRounds = 10;
 const TableName = "User";
@@ -610,11 +611,11 @@ const handleUserDbStatus = catchAsync(async (req, res) => {
 });
 const handleCreateApp = catchAsync(async (req, res) => {
   const data = req.body;
-  // api create Id ==> req.user._id
+  // api call authenticate method Id ==> req.user._id
   const userId = req.user._id;
 
   let isExistUser = await generalService.getSingleRecord(TableName, {
-    _id: data._id,
+    _id: data.referenceId,
   });
 
   // Check if user does not exist or is a superAdmin being accessed by a non-superAdmin
@@ -629,24 +630,76 @@ const handleCreateApp = catchAsync(async (req, res) => {
   }
 
   if (isExistUser.role === "admin" && isExistUser.status === "active") {
-    let newData = {};
-    newData["accountSetupStatus"] = "completed";
-    newData["dbAccess"] = "allowed";
-    const updatedRecord = await generalService.findAndModifyRecord(
-      TableName,
-      { _id: data._id },
-      newData
-    );
+    const {
+      referenceId,
+      selectedApp,
+      selectedUseCase,
+      selectedDatabase,
+      cardDetails,
+    } = data;
+    let updatedRecord = null;
+    data["paymentDetails"] = referenceId;
+    data["module"] = selectedApp;
+    data["dbConfig"] = selectedUseCase;
+    data["dbEngine"] = selectedDatabase;
+  
 
-    res.send({
-      status: constant.SUCCESS,
-      message: `Create App Successfully`,
-      Record: updatedRecord,
-    });
+    if (cardDetails) {
+      cardDetails["referenceId"] = referenceId;
+      cardDetails["payCardId"] = await autoIncrement(
+        "PaymentDetail",
+        "payCardId"
+      );
+      const paymentDetails = await generalService.addRecord(
+        "PaymentDetail",
+        cardDetails
+      );
+      if (paymentDetails) {
+        data["dbName"] = sanitizeAndFormatFullName(
+          isExistUser && isExistUser.fullName
+        );
+        const usId = data.dbName || `dummy_Db_${isExistUser._id} ${Date.now()}`;
+        // call db separate  Create function
+        const dbconnString = await dbManager.createDatabaseForAdmin(usId);
+        if (dbconnString) {
+          data["dbConnectionString"] = dbconnString;
+          data["accountSetupStatus"] = "completed";
+          data["dbAccess"] = "allowed";
+          updatedRecord = await generalService.findAndModifyRecord(
+            TableName,
+            { _id: data.referenceId },
+            data
+          );
+        } else {
+          return res.status(409).send({
+            status: constant.ERROR,
+            message: "Error in Database Configuration",
+          });
+        }
+      } else {
+        return res.status(409).send({
+          status: constant.ERROR,
+          message: "Error in Payment Details",
+        });
+      }
+    }
+
+    if (updatedRecord) {
+      res.send({
+        status: constant.SUCCESS,
+        message: `Create App Successfully`,
+        Record: updatedRecord,
+      });
+    } else {
+      return res.status(409).send({
+        status: constant.ERROR,
+        message: "Error: Record not updated",
+      });
+    }
   } else {
     return res.status(409).send({
       status: constant.ERROR,
-      message: "error",
+      message: "Your Account is not Active",
     });
   }
 });

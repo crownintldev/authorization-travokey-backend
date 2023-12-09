@@ -23,6 +23,7 @@ const VisaGateway = require("./gateway/visaRoutes");
 const DocumentGateway = require("./gateway/documentRoutes");
 const SubscriptionGateway = require("./gateway/subscription");
 const IntegratedDb = require("./gateway/integratedDb");
+const ModuleGateway = require("./gateway/module");
 
 const AppError = require("./common/utils/appError");
 const errorController = require("./common/utils/errorController");
@@ -73,7 +74,7 @@ app.use("/visa", VisaGateway);
 app.use("/document", DocumentGateway);
 app.use("/subscription", SubscriptionGateway);
 app.use("/db", IntegratedDb);
-app.use("/apps", IntegratedDb);
+app.use("/module", ModuleGateway);
 
 // Proxy endpoints
 app.use(
