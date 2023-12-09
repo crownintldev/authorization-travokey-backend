@@ -119,7 +119,7 @@ const signIn = catchAsync(async (req, res, next) => {
       ) {
         res.status(400).send({
           status: constant.ERROR,
-          message: "Invalid role and invalid request origin admin",
+          message: "galat hy bhai",
         });
         return;
       }
