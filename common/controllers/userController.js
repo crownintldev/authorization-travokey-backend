@@ -8,6 +8,8 @@ const constant = require("../utils/constant"),
 const { sanitizeAndFormatFullName } = require("../utils/userIdCreator");
 const jwt = require("jsonwebtoken");
 const { autoIncrement } = require("../utils/commonFunctions");
+const AppError = require("../utils/appError");
+const { default: mongoose } = require("mongoose");
 
 const saltRounds = 10;
 const TableName = "User";
@@ -611,17 +613,22 @@ const handleUserDbStatus = catchAsync(async (req, res) => {
 });
 const handleCreateApp = catchAsync(async (req, res) => {
   const data = req.body;
-  // api call authenticate method Id ==> req.user._id
-  const userId = req.user._id;
 
+  if (!mongoose.Types.ObjectId.isValid(data.referenceId)) {
+    return res.status(400).send({
+      status: constant.ERROR,
+      message: "Invalid reference ID",
+    });
+  }
+
+  const userId = req.user?._id;
   let isExistUser = await generalService.getSingleRecord(TableName, {
     _id: data.referenceId,
   });
 
-  // Check if user does not exist or is a superAdmin being accessed by a non-superAdmin
   if (
     !isExistUser ||
-    (isExistUser.role === "superAdmin" && isExistUser._id !== userId)
+    (isExistUser.role === "superAdmin" && isExistUser._id.toString() !== userId)
   ) {
     return res.status(404).send({
       status: constant.ERROR,
@@ -630,70 +637,86 @@ const handleCreateApp = catchAsync(async (req, res) => {
   }
 
   if (isExistUser.role === "admin" && isExistUser.status === "active") {
-    const {
-      referenceId,
-      selectedApp,
-      selectedUseCase,
-      selectedDatabase,
-      cardDetails,
-    } = data;
-    let updatedRecord = null;
-    data["paymentDetails"] = referenceId;
-    data["module"] = selectedApp;
-    data["dbConfig"] = selectedUseCase;
-    data["dbEngine"] = selectedDatabase;
-  
+    const { cardDetails } = data;
+    console.log("=========cardDetails", cardDetails);
+    if (
+      cardDetails &&
+      cardDetails.number !== "" &&
+      cardDetails.cvc !== "" &&
+      cardDetails.name !== "" &&
+      cardDetails.expiry !== ""
+    ) {
+      let isExistPaymentDetails = await generalService.getRecord(
+        "PaymentDetail",
+        {
+          referenceId: data.referenceId,
+          number: cardDetails.number,
+          cvc: cardDetails.cvc,
+        }
+      );
+      console.log("==isExistPaymentDetails", isExistPaymentDetails);
 
-    if (cardDetails) {
-      cardDetails["referenceId"] = referenceId;
-      cardDetails["payCardId"] = await autoIncrement(
-        "PaymentDetail",
-        "payCardId"
-      );
-      const paymentDetails = await generalService.addRecord(
-        "PaymentDetail",
-        cardDetails
-      );
-      if (paymentDetails) {
-        data["dbName"] = sanitizeAndFormatFullName(
-          isExistUser && isExistUser.fullName
-        );
-        const usId = data.dbName || `dummy_Db_${isExistUser._id} ${Date.now()}`;
-        // call db separate  Create function
-        const dbconnString = await dbManager.createDatabaseForAdmin(usId);
-        if (dbconnString) {
-          data["dbConnectionString"] = dbconnString;
-          data["accountSetupStatus"] = "completed";
-          data["dbAccess"] = "allowed";
-          updatedRecord = await generalService.findAndModifyRecord(
-            TableName,
-            { _id: data.referenceId },
-            data
+      if (isExistPaymentDetails && isExistPaymentDetails.length > 0) {
+        throw new AppError("Card already exist with same details", 409);
+      } else {
+        try {
+          // Process payment details and update user record
+          cardDetails["referenceId"] = data.referenceId;
+          cardDetails["payCardId"] = await autoIncrement(
+            "PaymentDetail",
+            "payCardId"
           );
-        } else {
-          return res.status(409).send({
+          const payment = await generalService.addRecord(
+            "PaymentDetail",
+            cardDetails
+          );
+          console.log("==payment", payment);
+          if (payment) {
+            data["paymentDetails"] = payment._id;
+            data["dbName"] = sanitizeAndFormatFullName(isExistUser?.fullName);
+            const usId = data.dbName || `dummy_${Date.now()}`;
+            const dbconnString = await dbManager.createDatabaseForAdmin(usId);
+            if (dbconnString) {
+              data["dbConnectionString"] = dbconnString;
+              data["accountSetupStatus"] = "completed";
+              data["dbAccess"] = "allowed";
+              const updatedRecord = await generalService.findAndModifyRecord(
+                TableName,
+                { _id: data.referenceId },
+                data
+              );
+              if (updatedRecord) {
+                res.send({
+                  status: constant.SUCCESS,
+                  message: "Create App Successfully",
+                  Record: updatedRecord,
+                });
+              } else {
+                return res.status(409).send({
+                  status: constant.ERROR,
+                  message: "Error: Record not updated",
+                });
+              }
+            } else {
+              return res.status(409).send({
+                status: constant.ERROR,
+                message: "Error in Database Configuration",
+              });
+            }
+          } else {
+            throw new AppError("Error in adding payment details", 409);
+          }
+        } catch (error) {
+          return res.status(error.statusCode || 500).send({
             status: constant.ERROR,
-            message: "Error in Database Configuration",
+            message: error.message,
           });
         }
-      } else {
-        return res.status(409).send({
-          status: constant.ERROR,
-          message: "Error in Payment Details",
-        });
       }
-    }
-
-    if (updatedRecord) {
-      res.send({
-        status: constant.SUCCESS,
-        message: `Create App Successfully`,
-        Record: updatedRecord,
-      });
     } else {
       return res.status(409).send({
         status: constant.ERROR,
-        message: "Error: Record not updated",
+        message: "Card details are missing",
       });
     }
   } else {

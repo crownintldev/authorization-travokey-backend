@@ -70,7 +70,7 @@ const UserSchema = new mongoose.Schema(
       default: "cloudBase",
     },
     dbName: {
-      type: String,
+      type: String,  
     },
     dbConnectionString: {
       type: String,

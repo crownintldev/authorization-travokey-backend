@@ -54,18 +54,12 @@ const signUp = catchAsync(async (req, res) => {
       data
     );
   } else {
-    // data.userId = sanitizeAndFormatFullName(data.fullName && data.fullName);
-    // const usId = data.userId;
-    // //call db separate  Create function
-    // const dbconnectionString = await dbManager.createDatabaseForAdmin(usId);
-    // if (dbconnectionString) {
-    //   data.dbConnectionString = dbconnectionString;
-    // }
     data[incrementalId] = await autoIncrement(TableName, incrementalId);
     user = await generalService.addRecord(TableName, data);
   }
   let token = await user.generateAuthToken();
   user.token = token;
+
   res.header({ "x-auth": token }).send({
     status: constant.SUCCESS,
     message: constant.USER_REGISTER_SUCCESS,
@@ -79,6 +73,7 @@ const signUp = catchAsync(async (req, res) => {
       "phoneNumber",
       "accountSetupStatus",
       "dbAccess",
+      "dbConfig",
     ]),
   });
 });
@@ -104,6 +99,7 @@ const signIn = catchAsync(async (req, res, next) => {
         });
         return;
       }
+      console.log("===== req.headers.origin", req.headers.origin);
       if (
         user.role === "superAdmin" &&
         req.headers.origin !== process.env.SUPER_ADMIN_URL
@@ -117,7 +113,6 @@ const signIn = catchAsync(async (req, res, next) => {
         user.role === "admin" &&
         req.headers.origin !== process.env.ADMIN_PORTAL_URL
       ) {
-        console.log("====req.headers.origin", req.headers.origin);
         res.status(400).send({
           status: constant.ERROR,
           message: "Invalid role and invalid request origin admin",
