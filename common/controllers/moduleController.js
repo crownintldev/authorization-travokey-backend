@@ -99,10 +99,7 @@ const editModule = catchAsync(async (req, res) => {
         data
       );
       // with pagination
-      const AllRecord = await fetchModuleList(
-        { _id: updatedRecord._id },
-        {}
-      );
+      const AllRecord = await fetchModuleList({ _id: updatedRecord._id }, {});
 
       return res.send({
         status: constant.SUCCESS,
@@ -141,9 +138,9 @@ const deleteModule = catchAsync(async (req, res) => {
 
 // =====================================getDocument
 const getModule = catchAsync(async (req, res) => {
-  const data = JSON.parse(req.params.query);
-  let limit = data.limit || 10;
-  let skipPage = limit * (data.pageNumber - 1) || 0;
+  const data = JSON.parse(req.query.query);
+  let limit = data?.limit || 10;
+  let skipPage = limit * (data?.pageNumber - 1) || 0;
   let pagination = { limit: limit, skipPage: skipPage };
   let condition = {};
 
@@ -160,7 +157,7 @@ const getModule = catchAsync(async (req, res) => {
   //     },
   //   };
   // }
-  
+
   const RecordAll = await fetchModuleList(condition, pagination);
   res.send({
     status: constant.SUCCESS,

@@ -11,6 +11,7 @@ const {
 } = require("../common/controllers/authControllers");
 const { authenticate } = require("../common/middleware/authenticate");
 const rateLimit = require("express-rate-limit");
+const abilityProvider = require("../common/middleware/abilityProvider");
 
 const rateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -19,7 +20,7 @@ const rateLimiter = rateLimit({
 
 router.post("/signup", signUp);
 router.post("/login", signIn);
-router.get("/me", authenticate, authCheck);
+router.get("/me", authenticate, abilityProvider, authCheck);
 router.put("/changePassword", authenticate, changePassword);
 router.post("/forgetPassword", authenticate, forgetPassword);
 router.post("/setNewPassword", authenticate, setNewPassword);

@@ -19,7 +19,6 @@ const UserSchema = new mongoose.Schema(
       default: 0,
       unique: true,
     },
-
     fullName: {
       type: String,
       lowercase: true,
@@ -60,21 +59,27 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
-    role: {
+    accountType: {
       type: String,
-      enum: ["superAdmin", "admin", "client", "agent", "company"],
+      enum: ["administrative", "staff"],
+      required: [true, "Account Type is required"],
+    },
+    role: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      required: [true, "Role is required"],
     },
     dbConfig: {
       type: String,
       enum: ["desktopSynchronize", "cloudBase", "desktopApp"],
       default: "cloudBase",
     },
-    dbName: {
-      type: String,  
-    },
-    dbConnectionString: {
-      type: String,
-    },
+    // dbName: {
+    //   type: String,
+    // },
+    // dbConnectionString: {
+    //   type: String,
+    // },
     gender: {
       type: String,
       enum: ["male", "female", "other"],
@@ -98,13 +103,19 @@ const UserSchema = new mongoose.Schema(
       enum: ["mongodb"],
       default: "mongodb",
     },
-    paymentDetails: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "PaymentDetail",
-    },
+    // paymentDetails: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "PaymentDetail",
+    // },
     module: {
       type: String,
-      enum: ["accountsApp", "ticketingApp"],
+      enum: [
+        "accountsApp",
+        "ticketingApp",
+        "emailApp",
+        "chatApp",
+        "invoiceApp",
+      ],
       default: "accountsApp",
       // type: mongoose.Schema.Types.ObjectId,
       // ref: "Module",
@@ -143,7 +154,7 @@ UserSchema.methods.generateAuthToken = async function (extra = "") {
       },
       secretKey,
       {
-        expiresIn: "10d",
+        expiresIn: process.env.authTokenExpiresIn,
       }
     )
     .toString();

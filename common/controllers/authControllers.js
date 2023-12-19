@@ -1,13 +1,10 @@
 const catchAsync = require("../utils/catchAsync");
-const dbManager = require("../utils/dbManager");
 const constant = require("../utils/constant"),
   generalService = require("../services/generalOperation"),
   bcrypt = require("bcryptjs"),
   passport = require("passport"),
   _ = require("lodash");
-const { sanitizeAndFormatFullName } = require("../utils/userIdCreator");
-const jwt = require("jsonwebtoken");
-const { autoIncrement } = require("../utils/commonFunctions");
+const { autoIncrement, fetchData } = require("../utils/commonFunctions");
 
 const saltRounds = 10;
 const TableName = "User";
@@ -20,10 +17,12 @@ let userFieldSendFrontEnd = [
   "phoneNumber",
   "role",
   "status",
+  "accountType",
   "createdAt",
   "profileImageUrl",
   "accountSetupStatus",
 ];
+
 const emailCheck = catchAsync(async (req, res) => {
   const { email } = JSON.parse(req.params.query);
   console.log("=====email", email);
@@ -68,6 +67,7 @@ const signUp = catchAsync(async (req, res) => {
       "email",
       "token",
       "fullName",
+      "accountType",
       "role",
       "status",
       "phoneNumber",
@@ -99,38 +99,44 @@ const signIn = catchAsync(async (req, res, next) => {
         });
         return;
       }
-      console.log("===== req.headers.origin", req.headers.origin);
+      console.log("===== req ===== origin ======", req.headers.origin);
       if (
-        user.role === "superAdmin" &&
-        req.headers.origin !== process.env.SUPER_ADMIN_URL
-      ) {
-        res.status(400).send({
-          status: constant.ERROR,
-          message: "Invalid role and invalid request origin superadmin",
-        });
-        return;
-      } else if (
-        user.role === "admin" &&
+        (user.accountType === "administrative" ||
+          user.accountType === "staff") &&
         req.headers.origin !== process.env.ADMIN_PORTAL_URL
       ) {
         res.status(400).send({
           status: constant.ERROR,
-          message: "Invalid role and invalid request origin admin",
+          message: "Invalid role and invalid request origin contact admin",
+        });
+        return;
+      }
+      if (data && data.accountType !== user.accountType) {
+        res.status(400).send({
+          status: constant.ERROR,
+          message: "Invalid Login Access",
         });
         return;
       }
 
-      if (user.status === "active" && user.role) {
+      if (
+        (user.accountType === "administrative" ||
+          user.accountType === "staff") &&
+        user.status === "active" &&
+        user.dbAccess === "allowed" &&
+        user.role
+      ) {
         let token = await user.generateAuthToken();
-        let data = _.pick(user, userFieldSendFrontEnd);
-        data.token = token;
+        const userData = await fetchData({ _id: user._id }, {});
+        
+        // let data = _.pick(user, userFieldSendFrontEnd);
+        userData.token = token;
         res.append("x-auth", token);
         res.append("Access-Control-Expose-Headers", "x-auth");
-
         res.status(200).send({
           status: constant.SUCCESS,
           message: constant.USER_LOGIN_SUCCESS,
-          user: data,
+          user: userData,
         });
       } else {
         res.status(403).send({
