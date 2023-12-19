@@ -39,6 +39,8 @@ const dbManager = {
    */
   async createDatabaseForAdmin(userId) {
     if (userId !== undefined) {
+
+      
       const connectionString = `${process.env.DBCONN}/${userId}?retryWrites=true&w=majority&appName=AtlasApp`;
 
       // Initialize database (create connection)
@@ -59,6 +61,7 @@ const dbManager = {
    * @returns {Promise<mongoose.Connection>} - The Mongoose database connection
   
   async getDatabaseConnectionForAdmin(adminId) {
+
     if (connections[adminId]) {
       return connections[adminId];
     }

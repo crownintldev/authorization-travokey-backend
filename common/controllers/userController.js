@@ -611,6 +611,8 @@ const handleUserDbStatus = catchAsync(async (req, res) => {
     });
   }
 });
+// ==================== handleCreateApp ====================//
+
 const handleCreateApp = catchAsync(async (req, res) => {
   const data = req.body;
 
@@ -638,7 +640,6 @@ const handleCreateApp = catchAsync(async (req, res) => {
 
   if (isExistUser.role === "admin" && isExistUser.status === "active") {
     const { cardDetails } = data;
-    console.log("=========cardDetails", cardDetails);
     if (
       cardDetails &&
       cardDetails.number !== "" &&
@@ -654,8 +655,6 @@ const handleCreateApp = catchAsync(async (req, res) => {
           cvc: cardDetails.cvc,
         }
       );
-      console.log("==isExistPaymentDetails", isExistPaymentDetails);
-
       if (isExistPaymentDetails && isExistPaymentDetails.length > 0) {
         throw new AppError("Card already exist with same details", 409);
       } else {
