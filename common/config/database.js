@@ -38,7 +38,6 @@ module.exports = async function (connectionString) {
   try {
     // Connect to the default database using Mongoose
     await mongoose.connect(connectionString, mongooseOptions);
-    console.log("===== MongoDB Connection Established =====");
     // Load your models here, after the successful connection
     let requireModels = requireWalk(__dirname + "/../model");
     requireModels();
@@ -46,9 +45,9 @@ module.exports = async function (connectionString) {
     // Example: Connect to other databases based on your configuration
     // connectToDatabase("travokey");
   } catch (err) {
-    console.error(err);
     console.log(
-      "MongoDB connection error. Please make sure MongoDB is running."
+      "MongoDB connection error. Please make sure MongoDB is running.===",
+      err
     );
     process.exit(1);
   }

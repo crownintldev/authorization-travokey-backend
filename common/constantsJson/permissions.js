@@ -1,0 +1,92 @@
+const permissions = [
+  {
+    name: "Create User",
+    description: "Allows user creation",
+    action: "create",
+    subject: "UserProfile",
+  },
+  {
+    name: "Read Invoice",
+    description: "Allows reading invoices",
+    action: "read",
+    subject: "Invoice",
+  },
+  {
+    name: "Update Order",
+    description: "Allows updating orders",
+    action: "update",
+    subject: "Order",
+  },
+  {
+    name: "Delete Product",
+    description: "Allows deleting products",
+    action: "delete",
+    subject: "Product",
+  },
+  {
+    name: "Manage Reports",
+    description: "Allows managing reports",
+    action: "manage",
+    subject: "Report",
+  },
+  {
+    name: "View Users",
+    description: "Allows viewing user profiles",
+    action: "read",
+    subject: "UserProfile",
+  },
+  {
+    name: "Publish Content",
+    description: "Allows publishing content",
+    action: "publish",
+    subject: "Product",
+  },
+  {
+    name: "Manage Orders",
+    description: "Allows managing orders",
+    action: "manageOrders",
+    subject: "Order",
+  },
+  {
+    name: "Access Dashboard",
+    description: "Allows access to the dashboard",
+    action: "accessDashboard",
+    subject: "All",
+  },
+  {
+    name: "View Audit Logs",
+    description: "Allows viewing audit logs",
+    action: "viewAuditLogs",
+    subject: "All",
+  },
+  {
+    name: "Configure System",
+    description: "Allows system configuration",
+    action: "configureSystem",
+    subject: "All",
+  },
+  {
+    name: "Edit Profile",
+    description: "Allows editing user profiles",
+    action: "editProfile",
+    subject: "UserProfile",
+  },
+  {
+    name: "Manage Roles",
+    description: "Allows managing user roles",
+    action: "manageRoles",
+    subject: "All",
+  },
+  {
+    name: "Manage Security Settings",
+    description: "Allows managing security settings",
+    action: "manageSecuritySettings",
+    subject: "All",
+  },
+  {
+    name: "Reject Requests",
+    description: "Allows rejecting requests",
+    action: "reject",
+    subject: "All",
+  },
+];

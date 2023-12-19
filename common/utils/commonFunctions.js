@@ -23,6 +23,33 @@ const autoIncrement = async (table, fieldName, condition = {}) => {
   }
 };
 
+// const autoIncrement = async (dbConnection, table, schema) => {
+//   const session = await dbConnection.startSession(); // Start a session for transaction
+//   session.startTransaction(); // Start the transaction
+//   try {
+//     // Check if the model exists; if not, create it
+//     if (!dbConnection.models[table]) {
+//       dbConnection.model(table, schema);
+//     }
+//     const Counter = dbConnection.model("Counter", counterSchema, "counters");
+
+//     // Atomically find the counter document and increment the sequence value
+//     const counter = await Counter.findOneAndUpdate(
+//       { _id: table },
+//       { $inc: { seq: 1 } },
+//       { new: true, upsert: true, session }
+//     );
+//     await session.commitTransaction(); // Commit the transaction
+//     session.endSession();
+//     return counter.seq;
+//   } catch (error) {
+//     await session.abortTransaction(); // Abort the transaction on error
+//     session.endSession();
+//     console.log("===auto incrment Error", error);
+//     throw error; // Rethrow the error for further handling
+//   }
+// };
+
 const getDetailsById = async (_id) => {
   const aggregateArray = [
     {
@@ -288,9 +315,106 @@ const fetchTableDataListAndCard = async (
   ];
   return await generalService.getRecordAggregate("User", aggregateArray);
 };
+const fetchData = async (searchCondition) => {
+  const aggregateArray = [
+    { $match: searchCondition },
+    {
+      $lookup: {
+        from: "roles",
+        localField: "role",
+        foreignField: "_id",
+        as: "roleDetails",
+        pipeline: [
+          {
+            $lookup: {
+              from: "permissions",
+              let: { permissionIds: "$permissions" },
+              pipeline: [
+                { $match: { $expr: { $in: ["$_id", "$$permissionIds"] } } },
+                {
+                  $lookup: {
+                    from: "modules",
+                    localField: "module",
+                    foreignField: "_id",
+                    pipeline: [
+                      {
+                        $project: {
+                          _id: 0,
+                          key: 1,
+                          title: 1,
+                          // Add other fields you need from the permissions documents
+                        },
+                      },
+                    ],
+                    as: "moduleDetails",
+                  },
+                },
+                { $unwind: "$moduleDetails" },
+                {
+                  $project: {
+                    _id: 0,
+                    action: 1,
+                    subject: 1,
+                    module: "$moduleDetails.key",
+                  },
+                },
+              ],
+              as: "permissionsDetails",
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              roleId: 1,
+              title: 1,
+              permissionsDetails: 1,
+              createdBy: 1,
+            },
+          },
+        ],
+      },
+    },
+    { $unwind: "$roleDetails" },
+
+    {
+      $project: {
+        userId: 1,
+        email: 1,
+        fullName: 1,
+        accountType: 1,
+        // moduleDetails: 1,
+        role: "$roleDetails.title",
+        permissionsDetails: "$roleDetails.permissionsDetails",
+        status: 1,
+        token: 1,
+        accountSetupStatus: 1,
+        dbAccess: 1,
+        dbConfig: 1,
+      },
+    },
+    { $sort: { _id: -1 } },
+  ];
+
+  const result = await generalService.getRecordAggregate(
+    "User",
+    aggregateArray
+  );
+  const user = result.length > 0 ? result[0] : null;
+  user.modules = [
+    { id: "657d692e85a989a42d8a09fa", title: "Accounts", key: "accountsapp" },
+    { id: "657d694785a989a42d8a0a00", title: "Tickets", key: "ticketingapp" },
+    {
+      id: "657d691785a989a42d8a09f4",
+      title: "Laboratory",
+      key: "laboratoryapp",
+    },
+  ];
+  return user;
+};
 
 module.exports = {
   autoIncrement,
   getDetailsById,
   fetchTableDataListAndCard,
+  fetchData,
 };
