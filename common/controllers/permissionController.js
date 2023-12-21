@@ -31,10 +31,9 @@ const fetchPermissionList = async (searchCondition, pagination) => {
               pipeline: [
                 {
                   $project: {
-                    _id: 1,
+                    _id: 0,
                     key: 1,
                     title: 1,
-
                     // Add other fields you need from the permissions documents
                   },
                 },
@@ -42,14 +41,15 @@ const fetchPermissionList = async (searchCondition, pagination) => {
               as: "modules", // Output array field.
             },
           },
+          { $unwind: "$modules" },
           {
             $project: {
               permissionId: 1,
               name: 1,
               description: 1,
-              modules: 1,
+              module: "$modules",
               action: 1,
-              subject: 1,
+              // subject: 1,
               createdBy: 1,
             },
           },
@@ -85,33 +85,45 @@ const fetchPermissionList = async (searchCondition, pagination) => {
 // ==================== add document record ====================//
 const addPermission = catchAsync(async (req, res) => {
   const data = req.body;
-  data.createdBy = req._id;
-  try {
-    data[incrementalId] = await autoIncrement(TableName, incrementalId);
-
-    const Record = await generalService.addRecord(TableName, data);
-    const AllRecord = await fetchPermissionList({ _id: Record._id }, {});
-    return res.send({
-      status: constant.SUCCESS,
-      message: "Permission added successfully",
-      Record: AllRecord[0],
-    });
-  } catch (error) {
-    console.error("Error adding expense:", error);
-    return res.status(500).send({
-      status: "error",
-      message: "Error adding expense record--",
-    });
+  data.createdBy = req.user._id;
+  const { module, name } = data;
+  const isExist = await generalService.getRecord(TableName, {
+    module: module,
+    // name,
+  });
+  console.log(
+    "===isExist",
+    isExist.find((value) => value.name === name)
+  );
+  if (
+    isExist &&
+    isExist.length > 0 &&
+    isExist.find((value) => value.name === name)
+  ) {
+    throw new AppError("Record already exists", 409);
+  } else {
+    try {
+      data[incrementalId] = await autoIncrement(TableName, incrementalId);
+      const Record = await generalService.addRecord(TableName, data);
+      const AllRecord = await fetchPermissionList({ _id: Record._id }, {});
+      return res.send({
+        status: constant.SUCCESS,
+        message: "Permission added successfully",
+        Record: AllRecord[0],
+      });
+    } catch (error) {
+      console.error("Error adding permission:", error);
+      return res.status(500).send({
+        status: "error",
+        message: "Error adding permission record--",
+      });
+    }
   }
 });
 // =====================================getDocument
 const getPermission = catchAsync(async (req, res) => {
-  console.log(
-    "===================================== query ===================================",
-    req.query
-  );
-  const data = JSON.parse(req.query);
-
+  console.log("==data====", req.params.query);
+  const data = JSON.parse(req.params.query);
   let limit = data?.limit || 10;
   let skipPage = limit * (data?.pageNumber - 1) || 0;
   let pagination = { limit: limit, skipPage: skipPage };
@@ -137,15 +149,19 @@ const getPermission = catchAsync(async (req, res) => {
     Record: RecordAll[0],
   });
 });
-const getPermissionDetails = catchAsync(async (req, res) => {
+const getPermissionDetailsWithId = catchAsync(async (req, res) => {
   // ... Rest of your code ...
+  const data = JSON.parse(req.params.query);
 
-  const RecordAll = await fetchPermissionList({}, {});
+  const Record = await generalService.getRecord(TableName, {
+    module: data.module,
+  });
+  // const RecordAll = await fetchPermissionList({ module: data.module }, {});
   res.send({
     status: constant.SUCCESS,
     message: "Record fetch Successfully",
-    Record: RecordAll[0],
+    Record: Record,
   });
 });
 
-module.exports = { addPermission, getPermission, getPermissionDetails };
+module.exports = { addPermission, getPermission, getPermissionDetailsWithId };

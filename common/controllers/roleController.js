@@ -183,9 +183,14 @@ const getRole = catchAsync(async (req, res) => {
   });
 });
 const getRoleList = catchAsync(async (req, res) => {
+  const data = JSON.parse(req.params.query);
+  let condition;
+  if (data.query === "all") {
+    condition = {};
+  }
   const Record = await generalService.getRecordWithProject(
     TableName,
-    {},
+    condition,
     { _id: 1, title: 1, permissions: "$permissions" }
   );
   res.send({

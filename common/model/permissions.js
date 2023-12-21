@@ -11,7 +11,6 @@ const permissionsSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     description: {
@@ -22,45 +21,17 @@ const permissionsSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Module",
     },
-    action: {
-      type: String,
-      required: true,
-      enum: [
-        "create",
-        "read",
-        "update",
-        "delete",
-        "approve",
-        "reject",
-        "publish",
-        "unpublish",
-        "activate",
-        "deactivate",
-        "manage",
-        "manageUsers",
-        "manageRoles",
-        "viewReports",
-        "configureSystem",
-        "editProfile",
-        "manageOrders",
-        "accessDashboard",
-        "viewAuditLogs",
-        "manageSecuritySettings",
-      ],
-    },
-    subject: {
-      type: String,
-      required: true,
-      enum: [
-        "All",
-        "UserProfile",
-        "Invoice",
-        "Order",
-        "Report",
-        "Product",
-        "Post",
-      ], // List of subjects
-    },
+    action: [
+      {
+        type: String,
+        enum: ["create", "read", "update", "delete"],
+      },
+    ],
+    // subject: {
+    //   type: String,
+    //   unique: true,
+    //   trim: true,
+    // },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
