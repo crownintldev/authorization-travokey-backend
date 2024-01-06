@@ -81,6 +81,57 @@ const fetchPermissionList = async (searchCondition, pagination) => {
 
   return await generalService.getRecordAggregate(TableName, aggregateArray);
 };
+const fetchPermissionListWithoutPagination = async (searchCondition) => {
+  console.log("searchCondition===", searchCondition);
+
+  // Ensure that the module field in searchCondition is converted to ObjectId if necessary
+  if (searchCondition.module && typeof searchCondition.module === "string") {
+    searchCondition.module = searchCondition.module;
+  }
+
+  const aggregateArray = [
+    { $match: searchCondition },
+    {
+      $lookup: {
+        from: "modules",
+        localField: "module",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              _id: 0,
+              key: 1,
+              title: 1,
+            },
+          },
+        ],
+        as: "moduleDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$moduleDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        moduleKey: "$moduleDetails.key",
+        description: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+
+  const result = await generalService.getRecordAggregate(
+    TableName,
+    aggregateArray
+  );
+  console.log("Aggregation result:", result);
+  return result;
+};
 
 // ==================== add document record ====================//
 const addPermission = catchAsync(async (req, res) => {
@@ -150,13 +201,13 @@ const getPermission = catchAsync(async (req, res) => {
   });
 });
 const getPermissionDetailsWithId = catchAsync(async (req, res) => {
-  // ... Rest of your code ...
   const data = JSON.parse(req.params.query);
-
+  // const recordAll = await fetchPermissionListWithoutPagination({
+  //   module: data.module, // Ensure data.module is ObjectId
+  // });
   const Record = await generalService.getRecord(TableName, {
     module: data.module,
   });
-  // const RecordAll = await fetchPermissionList({ module: data.module }, {});
   res.send({
     status: constant.SUCCESS,
     message: "Record fetch Successfully",

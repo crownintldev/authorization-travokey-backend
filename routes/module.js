@@ -7,12 +7,18 @@ const {
   editModule,
   deleteModule,
   getModule,
+  getModuleList,
 } = require("../common/controllers/moduleController");
 const abilityProvider = require("../common/middleware/abilityProvider");
 
 router.post("/addModule", authenticate, abilityProvider, addModule);
 router.post("/editModule", authenticate, editModule);
 router.post("/deleteModule", authenticate, deleteModule);
-router.get("/getModule", authenticate, abilityProvider, getModule);
+router.get(
+  "/getModuleList/:query",
+  authenticate,
+  abilityProvider,
+  getModuleList
+);
 
 module.exports = router;

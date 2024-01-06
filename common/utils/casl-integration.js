@@ -2,25 +2,29 @@ const { Ability, AbilityBuilder } = require("@casl/ability");
 
 const defineAbilitiesFor = (user) => {
   const { can, build } = new AbilityBuilder(Ability);
-  console.log("===user ===", user);
   // Check if the user has administrative privileges
-  if (
-    user.accountType === "administrative" &&
-    user.status === "active" &&
-    user.dbAccess === "allowed"
-  ) {
-    can("manage", "All");
-  } else if (
-    user.accountType === "staff" &&
-    user.status === "active" &&
-    user.dbAccess === "allowed"
-  ) {
-    // Define abilities based on permissions and modules
-    user.permissionsDetails.forEach((permission) => {
-      can(permission.action, permission.subject, {
-        module: permission.module,
+  if (user.accountType === "administrative") {
+    let hasAdministrativeManageAll = user.permissionsDetails?.some(
+      (permissionDetail) =>
+        permissionDetail.permission === "administrative" &&
+        permissionDetail.actions?.includes("manageAll")
+    );
+    if (hasAdministrativeManageAll) {
+      can("manageAll", "administrative", {
+        module: "all",
       });
-    });
+    }
+  } else if (user.accountType === "staff") {
+    user.permissionsDetails.length > 0 &&
+      user.permissionsDetails.forEach((permissionDetail) => {
+        if (Array.isArray(permissionDetail.actions)) {
+          permissionDetail.actions.forEach((action) => {
+            can(action, permissionDetail.permission, {
+              module: permissionDetail.module,
+            });
+          });
+        }
+      });
   }
 
   return build();

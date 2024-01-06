@@ -1,6 +1,23 @@
 const mongoose = require("mongoose");
 let aggregatePaginate = require("mongoose-aggregate-paginate-v2");
-
+const rolePermissionSchema = new mongoose.Schema({
+  module: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Module",
+  },
+  permission: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Permission",
+    required: true,
+  },
+  actions: [
+    {
+      type: String,
+      enum: ["read", "write", "update", "delete", "create", "manageAll"],
+      required: true,
+    },
+  ],
+});
 const roleSchema = new mongoose.Schema(
   {
     roleId: {
@@ -13,12 +30,7 @@ const roleSchema = new mongoose.Schema(
       lowercase: true,
       required: [true, "Please provide title."],
     },
-    permissions: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Permission",
-      },
-    ],
+    permissionDetails: [rolePermissionSchema],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

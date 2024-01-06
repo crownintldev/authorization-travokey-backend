@@ -165,9 +165,27 @@ const getModule = catchAsync(async (req, res) => {
     Record: RecordAll[0],
   });
 });
+const getModuleList = catchAsync(async (req, res) => {
+  const data = JSON.parse(req.params.query);
+  let condition;
+  if (data.query === "all") {
+    condition = {};
+  }
+  const Record = await generalService.getRecordWithProject(
+    TableName,
+    condition,
+    { _id: 1, title: 1, key: 1 }
+  );
+  res.send({
+    status: constant.SUCCESS,
+    // message: "Record fetch successfully",
+    Record,
+  });
+});
 module.exports = {
   addModule,
   editModule,
   deleteModule,
   getModule,
+  getModuleList,
 };

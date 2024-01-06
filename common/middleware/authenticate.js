@@ -136,30 +136,37 @@ const authenticate = (req, res, next) => {
       //   "dbAccess",
       //   "dbConfig",
       // ]);
-      const userData = await fetchData({ _id: user._id }, {});
-      const ability = defineAbilitiesFor(userData);
-      req.user = userData;
-      req.ability = ability;
-      next();
+
       // res.status(200).send({
       //   status: constant.SUCCESS,
-      //   ability: ability,
+      //   ability: ability.rules,
       //   user: userData,
       // });
-      // if (
-      //   req.user.role === "admin" &&
-      //   req.user.status === "active" &&
-      //   req.user.dbAccess === "denied" &&
-      //   req.user.accountSetupStatus === "pending"
-      // ) {
-      //   res.status(401).send({
-      //     status: constant.ERROR,
-      //     message: "Unauthorized Database Access",
-      //   });
-      // } else {
-      //   req.token = token;
-      //   next();
-      // }
+      if (
+        (user.accountType === "administrative" ||
+          user.accountType === "staff") &&
+        user.status === "active" &&
+        user.dbConfig === "cloudBase" &&
+        user.dbAccess === "allowed" &&
+        user.accountSetupStatus === "completed"
+      ) {
+        const userData = await fetchData({ _id: user._id }, {});
+        const ability = defineAbilitiesFor(userData);
+        // res.status(200).send({
+        //   status: constant.SUCCESS,
+        //   ability: ability.rules,
+        //   user: userData,
+        // });
+        req.user = userData;
+        req.ability = ability;
+        req.token = token;
+        next();
+      } else {
+        res.status(401).send({
+          status: constant.ERROR,
+          message: "Unauthorized Access",
+        });
+      }
     })
     .catch((err) => {
       res.status(401).send({

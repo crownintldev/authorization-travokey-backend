@@ -128,9 +128,10 @@ const signIn = catchAsync(async (req, res, next) => {
       ) {
         let token = await user.generateAuthToken();
         const userData = await fetchData({ _id: user._id }, {});
-        
+
         // let data = _.pick(user, userFieldSendFrontEnd);
         userData.token = token;
+        // user.token = token;
         res.append("x-auth", token);
         res.append("Access-Control-Expose-Headers", "x-auth");
         res.status(200).send({

@@ -315,6 +315,8 @@ const fetchTableDataListAndCard = async (
   ];
   return await generalService.getRecordAggregate("User", aggregateArray);
 };
+
+
 const fetchData = async (searchCondition) => {
   const aggregateArray = [
     { $match: searchCondition },
@@ -326,65 +328,76 @@ const fetchData = async (searchCondition) => {
         as: "roleDetails",
         pipeline: [
           {
+            $unwind: "$permissionDetails", // Unwind the permissionDetails array
+          },
+          {
             $lookup: {
               from: "permissions",
-              let: { permissionIds: "$permissions" },
-              pipeline: [
-                { $match: { $expr: { $in: ["$_id", "$$permissionIds"] } } },
-                {
-                  $lookup: {
-                    from: "modules",
-                    localField: "module",
-                    foreignField: "_id",
-                    pipeline: [
-                      {
-                        $project: {
-                          _id: 0,
-                          key: 1,
-                          title: 1,
-                          // Add other fields you need from the permissions documents
-                        },
-                      },
-                    ],
-                    as: "moduleDetails",
-                  },
-                },
-                { $unwind: "$moduleDetails" },
-                {
-                  $project: {
-                    _id: 0,
-                    action: 1,
-                    subject: 1,
-                    module: "$moduleDetails.key",
-                  },
-                },
-              ],
-              as: "permissionsDetails",
+              localField: "permissionDetails.permission",
+              foreignField: "_id",
+              as: "permissionInfo",
+            },
+          },
+          {
+            $unwind: "$permissionInfo", // rolePermissionSchema
+          },
+          {
+            $lookup: {
+              from: "modules",
+              localField: "permissionInfo.module",
+              foreignField: "_id",
+              as: "moduleDetails",    //moduleSchema
+            },
+          },
+          {
+            $unwind: {
+              path: "$moduleDetails",
+              preserveNullAndEmptyArrays: true,
             },
           },
           {
             $project: {
-              _id: 0,
+              _id: 1,
               roleId: 1,
               title: 1,
-              permissionsDetails: 1,
-              createdBy: 1,
+              allowedModule: {
+                  key: "$moduleDetails.key",
+                  _id: "$moduleDetails._id",
+                  title: "$moduleDetails.title",
+                },
+              permissionsData: {
+                module: "$moduleDetails.key",
+                permission: "$permissionInfo.name",
+                description: "$permissionInfo.description",
+                actions: "$permissionDetails.actions", // Include actions here
+              },
+              createdBy: "$moduleDetails.createdBy",
+            },
+          },
+          {
+            $group: {
+              _id: "$_id",
+              roleId: { $first: "$roleId" },
+              title: { $first: "$title" },
+              createdBy: { $first: "$createdBy" },
+              allowedModule:{$first:"$allowedModule"},
+              permissionsData: { $push: "$permissionsData" }, // Group permissionsdata
             },
           },
         ],
       },
     },
-    { $unwind: "$roleDetails" },
-
+    { $unwind: { path: "$roleDetails", preserveNullAndEmptyArrays: true } },
     {
       $project: {
         userId: 1,
         email: 1,
         fullName: 1,
         accountType: 1,
-        // moduleDetails: 1,
         role: "$roleDetails.title",
-        permissionsDetails: "$roleDetails.permissionsDetails",
+        createdBy:"$roleDetails.createdBy",
+        permissionsDetails: "$roleDetails.permissionsData",
+        modules: "$roleDetails.allowedModule", // Include module details
         status: 1,
         token: 1,
         accountSetupStatus: 1,
@@ -400,15 +413,6 @@ const fetchData = async (searchCondition) => {
     aggregateArray
   );
   const user = result.length > 0 ? result[0] : null;
-  user.modules = [
-    { id: "657d692e85a989a42d8a09fa", title: "Accounts", key: "accountsapp" },
-    { id: "657d694785a989a42d8a0a00", title: "Tickets", key: "ticketingapp" },
-    {
-      id: "657d691785a989a42d8a09f4",
-      title: "Laboratory",
-      key: "laboratoryapp",
-    },
-  ];
   return user;
 };
 

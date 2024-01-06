@@ -21,17 +21,6 @@ const permissionsSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Module",
     },
-    action: [
-      {
-        type: String,
-        enum: ["create", "read", "update", "delete"],
-      },
-    ],
-    // subject: {
-    //   type: String,
-    //   unique: true,
-    //   trim: true,
-    // },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

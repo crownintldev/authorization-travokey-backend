@@ -1,56 +1,75 @@
-const { subject } = require("@casl/ability");
+const {
+  AbilityBuilder,
+  Ability,
+  subject: defineSubject,
+} = require("@casl/ability");
 
 const abilityProvider = (req, res, next) => {
   const ability = req.ability;
-  const action = determineAction(req);
-  const subjectType = determineSubject(req);
-  const moduleKey = determineModuleKey(req);
+  const user = req.user;
 
-  const docs = subject(subjectType, {
-    module: moduleKey,
-  }); //  “docs” type instance
-  if (ability.can(action, docs)) {
-    next();
+  function determineActionType(req) {
+    switch (req.method) {
+      case "POST":
+        return "create";
+      case "GET":
+        return "read";
+      case "PUT":
+        return "write";
+      case "DELETE":
+        return "delete";
+      default:
+        return "read";
+    }
+  }
+
+  function determineModuleKey(req, perm) {
+    let actionType = undefined;
+    if (perm.permission === "administrative") {
+      actionType = "manageAll";
+      perm["module"] = "all";
+    } else {
+      actionType = determineActionType(req);
+    }
+    let module = req.path.includes(`/${perm.module || "settings"}`)
+      ? perm.module
+      : "all";
+    if (module && actionType) {
+      return { module, actionType };
+    }
+  }
+
+  function determineAction(req, user, ability) {
+    console.log("===ability rules", ability.rules);
+    for (const perm of user.permissionsDetails || []) {
+      const { module, actionType } = determineModuleKey(req, perm);
+
+      for (const action of perm.actions || []) {
+        const subjectInstance = defineSubject(perm.permission, { module });
+
+        if (ability.can(actionType, subjectInstance)) {
+          console.log(
+            "====subjectInstance",
+            action,
+            actionType,
+            perm.permission,
+            module
+          );
+          return { actionType, permission: perm.permission, module };
+        }
+      }
+    }
+    return null;
+  }
+
+  const permission = determineAction(req, user, ability);
+
+  if (permission) {
+    console.log("Allowed Permission:", permission);
+    next(); // User has permission, proceed with the request
   } else {
     res.status(403).send({ message: "Access Denied", status: "ERROR" });
   }
 };
-
-function determineAction(req) {
-  // Logic based on HTTP method
-  switch (req.method) {
-    case "POST":
-      return "create";
-    case "GET":
-      return "read";
-    case "PUT":
-      return "update";
-    case "DELETE":
-      return "delete";
-    default:
-      return "read";
-  }
-}
-
-function determineSubject(req) {
-  // Logic based on URL path
-  if (req.path.includes("/role/getRole") || req.path.includes("/me")) {
-    return "All";
-  }
-  if (req.path.includes("/products")) return "Product";
-  if (req.path.includes("/invoices")) return "Invoice";
-  if (req.path.includes("/reports")) return "Report";
-  return "All"; // Fallback subject
-}
-
-function determineModuleKey(req) {
-  // Example: determine the module key from the request
-  // Modify this logic based on how your modules are defined in the request
-  if (req.path.includes("/accountsApp")) {
-    return "accountsapp";
-  }
-  // Add logic for other modules
-  return "accountsapp"; // Fallback module key
-}
 
 module.exports = abilityProvider;

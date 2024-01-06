@@ -33,8 +33,7 @@ const fetchRoleList = async (searchCondition, pagination) => {
           //           _id: 1,
           //           name: 1,
           //           description: 1,
-          //           action: 1,
-          //           subject: 1,
+          //           module: 1,
           //           // Add other fields you need from the permissions documents
           //         },
           //       },
@@ -42,15 +41,21 @@ const fetchRoleList = async (searchCondition, pagination) => {
           //     as: "permissionsDetails",
           //   },
           // },
-
           {
             $lookup: {
               from: "permissions",
-              let: { permissionIds: "$permissions" }, // Assuming `permissions` is an array of ObjectIds
+              let: { permissionIds: "$permissionDetails" }, // Assuming `permissions` is an array of ObjectIds
               pipeline: [
+                // {
+                //   $match: {
+                //     $expr: { $in: ["$_id", "$$permissionIds"] }, // Match permissions in the array
+                //   },
+                // },
                 {
                   $match: {
-                    $expr: { $in: ["$_id", "$$permissionIds"] }, // Match permissions in the array
+                    $expr: {
+                      $in: ["$_id", { $ifNull: ["$$permissionIds", []] }],
+                    },
                   },
                 },
                 {
@@ -93,7 +98,7 @@ const fetchRoleList = async (searchCondition, pagination) => {
               createdBy: 1,
             },
           },
-          { $sort: { _id: -1 } },
+          // { $sort: { _id: -1 } },
           { $skip: skipPage },
           { $limit: limit },
         ],
@@ -123,45 +128,69 @@ const fetchRoleList = async (searchCondition, pagination) => {
 // ==================== add document record ====================//
 const addRole = catchAsync(async (req, res) => {
   const data = req.body;
-  data.createdBy = req._id;
-  try {
-    data[incrementalId] = await autoIncrement(TableName, incrementalId);
-    const Record = await generalService.addRecord(TableName, data);
-    const AllRecord = await fetchRoleList({ _id: Record._id }, {});
-    return res.send({
-      status: constant.SUCCESS,
-      message: "Role added successfully",
-      Record: AllRecord[0],
-    });
-  } catch (error) {
-    console.error("Error adding expense:", error);
-    return res.status(500).send({
-      status: "error",
-      message: "Error adding expense record--",
-    });
+  const { title, permissionDetails } = data;
+  const isRoleExist = await generalService.getRecord(TableName, {
+    title: title.toLowerCase(),
+  });
+  // return res.send({
+  //   status: constant.SUCCESS,
+  //   message: "Role added successfully",
+  //   Record: isRoleExist,
+  // });
+  if (isRoleExist && isRoleExist.length > 0) {
+    throw new AppError("Record already exists", 409);
+  } else {
+    try {
+      data.createdBy = req._id;
+      data[incrementalId] = await autoIncrement(TableName, incrementalId);
+      const Record = await generalService.addRecord(TableName, data);
+      // const AllRecord = await fetchRoleList({ _id: Record._id }, {});
+      return res.send({
+        status: constant.SUCCESS,
+        message: "Role added successfully",
+        Record: Record,
+      });
+    } catch (error) {
+      console.error("Error adding expense:", error);
+      return res.status(500).send({
+        status: "error",
+        message: "Error adding expense record--",
+      });
+    }
   }
 });
 // =====================================getDocument
 const getRole = catchAsync(async (req, res) => {
-  const data = JSON.parse(req.query.query);
+  let condition;
   let limit;
   let skipPage;
   let pagination;
-  console.log("==dta", data);
+  const data = JSON.parse(req.params.query);
+
   // if (data.query === "all") {
-  //   const RecordAll = await fetchRoleList({}, {});
-  //   res.send({
-  //     status: constant.SUCCESS,
-  //     message: "Record fetch Successfully",
-  //     Record: RecordAll[0],
-  //   });
+  //   condition = {};
   // }
 
-  limit = data?.limit || 10;
-  skipPage = limit * (data?.pageNumber - 1) || 0;
-  pagination = { limit: limit, skipPage: skipPage };
+  if (data.query === "all") {
+    condition = {};
+    const RecordAll = await fetchRoleList(condition, {});
+    res.send({
+      status: constant.SUCCESS,
+      message: "Record fetch Successfully",
+      Record: RecordAll[0],
+    });
+  } else {
+    limit = data?.limit || 10;
+    skipPage = limit * (data?.pageNumber - 1) || 0;
+    pagination = { limit: limit, skipPage: skipPage };
+    const RecordAll = await fetchRoleList({}, pagination);
+    res.send({
+      status: constant.SUCCESS,
+      message: "Record fetch Successfully",
+      Record: RecordAll[0],
+    });
+  }
 
-  let condition = {};
   // if (data.name) {
   //   condition = {
   //     $expr: {
@@ -175,12 +204,6 @@ const getRole = catchAsync(async (req, res) => {
   //     },
   //   };
   // }
-  const RecordAll = await fetchRoleList(condition, pagination);
-  res.send({
-    status: constant.SUCCESS,
-    message: "Record fetch Successfully",
-    Record: RecordAll[0],
-  });
 });
 const getRoleList = catchAsync(async (req, res) => {
   const data = JSON.parse(req.params.query);
@@ -188,11 +211,11 @@ const getRoleList = catchAsync(async (req, res) => {
   if (data.query === "all") {
     condition = {};
   }
-  const Record = await generalService.getRecordWithProject(
-    TableName,
-    condition,
-    { _id: 1, title: 1, permissions: "$permissions" }
-  );
+  // const Record = await generalService.getRecordWithProject(
+  //   TableName,
+  //   condition,
+  //   { _id: 1, title: 1, permissionDetails: "$permissions" }
+  // );
   res.send({
     status: constant.SUCCESS,
     message: "Record fetch successfully",

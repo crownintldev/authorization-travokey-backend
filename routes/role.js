@@ -9,7 +9,8 @@ const {
 const { authenticate } = require("../common/middleware/authenticate");
 const abilityProvider = require("../common/middleware/abilityProvider");
 
-router.post("/addRole", authenticate, abilityProvider, addRole);
-router.get("/getRoleList/:query", authenticate, abilityProvider, getRoleList);
+// router.post("/addRole", authenticate, abilityProvider, addRole);
+router.post("/addRole", addRole);
+router.get("/getRole/:query", authenticate, abilityProvider, getRole);
 
 module.exports = router;
